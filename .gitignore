@@ -1,4 +1,5 @@
 build/
+build-maya*/
 out/
 cmake-build-*/
 .vs/

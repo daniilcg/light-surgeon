@@ -1,8 +1,0 @@
-D:/Projects/Develop/Tools/Lighters/build-maya2023/CMakeFiles/lightsurgeon_core.dir
-D:/Projects/Develop/Tools/Lighters/build-maya2023/CMakeFiles/lightsurgeon.dir
-D:/Projects/Develop/Tools/Lighters/build-maya2023/CMakeFiles/lightsurgeon_tests.dir
-D:/Projects/Develop/Tools/Lighters/build-maya2023/CMakeFiles/lightSurgeon.dir
-D:/Projects/Develop/Tools/Lighters/build-maya2023/CMakeFiles/RUN_TESTS.dir
-D:/Projects/Develop/Tools/Lighters/build-maya2023/CMakeFiles/INSTALL.dir
-D:/Projects/Develop/Tools/Lighters/build-maya2023/CMakeFiles/ALL_BUILD.dir
-D:/Projects/Develop/Tools/Lighters/build-maya2023/CMakeFiles/ZERO_CHECK.dir
