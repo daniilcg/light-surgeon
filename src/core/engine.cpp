@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <sstream>
 #include <unordered_set>
 
@@ -463,6 +464,43 @@ MatchResult matchHero(const AnalysisResult& current, const AnalysisResult& hero)
         match.scales.push_back(s);
     }
     return match;
+}
+
+AnalysisResult mergeAnalyses(const std::vector<AnalysisResult>& parts) {
+    AnalysisResult out;
+    if (parts.empty()) return out;
+    out.frame = parts.front().frame;
+    std::map<std::string, LightStats> byName;
+    for (const auto& part : parts) {
+        out.samples += part.samples;
+        out.hits += part.hits;
+        out.totalEnergy += part.totalEnergy;
+        if (part.frame > out.frame) out.frame = part.frame;
+        for (const auto& l : part.lights) {
+            LightStats& acc = byName[l.name];
+            if (acc.name.empty()) acc = l;
+            else {
+                acc.energy += l.energy;
+                acc.maxSample = std::max(acc.maxSample, l.maxSample);
+                acc.litSamples += l.litSamples;
+                acc.noiseScore = std::max(acc.noiseScore, l.noiseScore);
+                acc.dead = acc.dead && l.dead;
+                acc.noisy = acc.noisy || l.noisy;
+                acc.outsideFrustum = acc.outsideFrustum && l.outsideFrustum;
+                acc.linkingEmpty = acc.linkingEmpty || l.linkingEmpty;
+            }
+        }
+        if (out.portals.empty()) out.portals = part.portals;
+        if (out.leaks.empty()) out.leaks = part.leaks;
+    }
+    for (auto& kv : byName) {
+        kv.second.pixelFraction = out.samples > 0 ? static_cast<double>(kv.second.litSamples) / out.samples : 0.0;
+        out.lights.push_back(kv.second);
+    }
+    std::sort(out.lights.begin(), out.lights.end(), [](const LightStats& a, const LightStats& b) {
+        return a.energy > b.energy;
+    });
+    return out;
 }
 
 std::string formatReport(const AnalysisResult& result) {

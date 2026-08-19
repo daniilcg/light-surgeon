@@ -253,6 +253,14 @@ int main() {
     const auto fileAutopsy = autopsyPixel(fileScene, 960, 540, settings);
     check(fileAutopsy.hit, "fixture pixel hit");
 
+    AnalysisResult a = fileAnalysis;
+    AnalysisResult b = fileAnalysis;
+    b.lights[0].energy *= 2.0;
+    b.totalEnergy += fileAnalysis.lights[0].energy;
+    const AnalysisResult merged = mergeAnalyses({a, b});
+    check(merged.samples == a.samples + b.samples, "merge samples add");
+    check(merged.lights.size() == a.lights.size(), "merge keeps lights");
+
     std::cout << gPass << " passed, " << gFails << " failed\n";
     return gFails == 0 ? 0 : 1;
 }

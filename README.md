@@ -1,29 +1,36 @@
-# Light Surgeon 1.0.0
+# Light Surgeon 1.1.0
 
 Created by **[Dan Segal](https://www.linkedin.com/in/daniilcg/)**.
 
-Production lighting surgeon for Autodesk Maya: pixel contribution, dead/noisy lights, portal candidates, leak hints, and hero-shot matching. Same engine runs as a Maya plugin and as a batch CLI.
+Production lighting surgeon for Autodesk Maya: pixel contribution, dead/noisy lights, portal candidates, leak hints, hero-shot matching, Maya light linking, render-camera / plate resolution, and frame-range analyze. Same engine runs as a Maya plugin and as a batch CLI.
 
 ## What it does
 
-- **Analyze** the active camera, meshes, and lights (Maya + Arnold dome/area).
-- **Pixel autopsy** ranks lights by estimated irradiance at a render-view pixel.
-- **Mute dead / noisy** lights with undo; **solo** and **restore** saved intensities.
+- **Analyze** the render camera (fallback: viewport), visible meshes, and lights (Maya + Arnold dome/area), including Maya light linking.
+- **Pixel autopsy** ranks lights at a pixel; **Pixel Center** uses plate resolution from `defaultResolution`.
+- **Mute dead / noisy** lights with undo; **solo** and **restore** saved intensities (Maya `intensity` or Arnold `aiIntensity`).
 - **Hero match** compares a saved report and optionally scales key/fill/rim.
-- **HUD** locator prints the last report in Viewport 2.0.
+- **Frame range** `-frameStart` / `-frameEnd` / `-frameStep` merges contribution across the shot.
+- **HUD** prints the last text report in Viewport 2.0.
 - **CLI** runs the same analysis on exported JSON (farm / dailies / no Maya).
 
-## Maya install
+## Maya — click this, in this order
 
-1. Build the plugin with the Maya devkit (`MAYA_LOCATION` pointing at the Maya install).
-2. Copy `lightSurgeon.mll` (Windows), `.so` (Linux) or `.bundle` (macOS) into `plug-ins/`.
-3. Add the `modules` directory to `MAYA_MODULE_PATH`, or copy `modules/lightSurgeon.mod` next to `plug-ins/` and `scripts/`.
-4. In Maya: Window → Settings/Preferences → Plug-in Manager → load `lightSurgeon`.
-5. Menu **Light Surgeon** appears on the main menu bar.
+1. Build with the Maya devkit (`MAYA_LOCATION`).
+2. Copy the plugin into `plug-ins/`, put `modules/lightSurgeon.mod` on `MAYA_MODULE_PATH`.
+3. Plug-in Manager → load `lightSurgeon`. Menu **Light Surgeon** appears.
+4. Look through the **shot / render camera**. Geometry in frame.
+5. **Analyze Shot**. Read DEAD / NOISY / ROLE.
+6. **Mute Dead Lights**, then **Mute Noisy Lights**. Undo if you hate it.
+7. **Pixel Center** if a pixel looks wrong.
+8. **Write Report** for dailies. On the hero shot first, then on the new shot: `lightSurgeon -matchHero "hero.json"` and `-apply` if the scales look sane.
 
 ```mel
 loadPlugin "lightSurgeon";
 lightSurgeon -analyze;
+lightSurgeon -analyze -json;
+lightSurgeon -frameStart 1001 -frameEnd 1100 -frameStep 10;
+lightSurgeon -pixelCenter;
 lightSurgeon -pixel 960 540;
 lightSurgeon -muteDead;
 lightSurgeon -muteNoisy;

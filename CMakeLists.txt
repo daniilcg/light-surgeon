@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(LightSurgeon VERSION 1.0.0 LANGUAGES CXX
+project(LightSurgeon VERSION 1.1.0 LANGUAGES CXX
     DESCRIPTION "Maya lighting surgeon by Dan Segal"
     HOMEPAGE_URL "https://www.linkedin.com/in/daniilcg/")
 

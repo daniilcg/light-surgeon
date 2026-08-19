@@ -17,7 +17,7 @@ public:
 private:
     enum class Action { None, Mute, Restore, Solo, Scale };
 
-    MStatus analyzeAndPrint(bool writeHud);
+    MStatus analyzeAndPrint(bool writeHud, bool asJson, int frameStart, int frameEnd, int frameStep);
     MStatus runPixel(int x, int y);
     MStatus writeReport(const MString& path);
     MStatus exportScene(const MString& path);
