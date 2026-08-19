@@ -1,0 +1,75 @@
+{
+  "frame": 1001,
+  "camera": {
+    "name": "shotCam",
+    "position": [0, 3, 10],
+    "aim": [0, 0, 0],
+    "up": [0, 1, 0],
+    "fov": 40,
+    "near": 0.1,
+    "far": 10000,
+    "aspect": 1.7777777778,
+    "width": 1920,
+    "height": 1080
+  },
+  "lights": [
+    {
+      "name": "key",
+      "type": "directional",
+      "position": [4, 8, 4],
+      "direction": [-0.35, -1, -0.4],
+      "color": [1, 0.96, 0.9],
+      "intensity": 4,
+      "exposure": 0,
+      "radius": 0.25,
+      "coneAngle": 40,
+      "penumbra": 0,
+      "areaWidth": 1,
+      "areaHeight": 1,
+      "enabled": true,
+      "include": [],
+      "exclude": []
+    },
+    {
+      "name": "fill",
+      "type": "point",
+      "position": [-3.5, 2.5, 4],
+      "direction": [0, -1, 0],
+      "color": [1, 1, 1],
+      "intensity": 40,
+      "exposure": 0,
+      "radius": 0.4,
+      "coneAngle": 40,
+      "penumbra": 0,
+      "areaWidth": 1,
+      "areaHeight": 1,
+      "enabled": true,
+      "include": [],
+      "exclude": []
+    },
+    {
+      "name": "dead_below",
+      "type": "point",
+      "position": [0, -3, 0],
+      "direction": [0, -1, 0],
+      "color": [1, 1, 1],
+      "intensity": 80,
+      "exposure": 0,
+      "radius": 0.2,
+      "coneAngle": 40,
+      "penumbra": 0,
+      "areaWidth": 1,
+      "areaHeight": 1,
+      "enabled": true,
+      "include": [],
+      "exclude": []
+    }
+  ],
+  "meshes": [
+    {
+      "name": "floor",
+      "vertices": [[-8, 0, -8], [8, 0, -8], [8, 0, 8], [-8, 0, 8]],
+      "triangles": [[0, 1, 2], [0, 2, 3]]
+    }
+  ]
+}

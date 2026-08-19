@@ -1,0 +1,10 @@
+global proc AElightSurgeonHudTemplate(string $nodeName)
+{
+    editorTemplate -beginScrollLayout;
+    editorTemplate -beginLayout "Light Surgeon HUD" -collapse 0;
+        editorTemplate -addControl "showHud";
+        editorTemplate -addControl "report";
+    editorTemplate -endLayout;
+    editorTemplate -addExtraControls;
+    editorTemplate -endScrollLayout;
+}
