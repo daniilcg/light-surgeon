@@ -19,6 +19,13 @@ Production lighting surgeon for Autodesk Maya: pixel contribution, dead/noisy li
 1. Build with the Maya devkit (`MAYA_LOCATION`).
 2. Copy the plugin into `plug-ins/`, put `modules/lightSurgeon.mod` on `MAYA_MODULE_PATH`.
 3. Plug-in Manager → load `lightSurgeon`. Menu **Light Surgeon** appears.
+
+On this machine the `.mll` is already built:
+
+- Maya 2023: `plug-ins/2023/lightSurgeon.mll`
+- Maya 2022: `plug-ins/2022/lightSurgeon.mll`
+
+Set `MAYA_MODULE_PATH` to `D:\Projects\Develop\Tools\Lighters\modules` (Maya.env or Windows environment), restart Maya, load the plugin.
 4. Look through the **shot / render camera**. Geometry in frame.
 5. **Analyze Shot**. Read DEAD / NOISY / ROLE.
 6. **Mute Dead Lights**, then **Mute Noisy Lights**. Undo if you hate it.

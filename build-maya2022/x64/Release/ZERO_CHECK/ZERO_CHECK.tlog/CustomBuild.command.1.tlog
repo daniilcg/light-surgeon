@@ -1,0 +1,10 @@
+^D:\PROJECTS\DEVELOP\TOOLS\LIGHTERS\BUILD-MAYA2022\CMAKEFILES\043D444E2C4451A5B23516A0C6C8E3FA\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Projects/Develop/Tools/Lighters -BD:/Projects/Develop/Tools/Lighters/build-maya2022 --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/Projects/Develop/Tools/Lighters/build-maya2022/LightSurgeon.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

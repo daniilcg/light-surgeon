@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\Projects\Develop\Tools\Lighters\build-maya2023\CMakeFiles\a670cab4368e92006970f6509d990c40\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{0D840013-9EA3-3A52-A4C4-1FF6766F4C3D}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

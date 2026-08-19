@@ -6,7 +6,7 @@
 #include <maya/M3dView.h>
 #include <maya/MAnimControl.h>
 #include <maya/MDagPath.h>
-#include <maya/MFloatVector.h>
+#include <maya/MColor.h>
 #include <maya/MFnCamera.h>
 #include <maya/MFnDagNode.h>
 #include <maya/MFnDirectionalLight.h>
@@ -31,6 +31,7 @@ namespace {
 Vec3 toVec(const MPoint& p) { return {p.x, p.y, p.z}; }
 Vec3 toVec(const MVector& p) { return {p.x, p.y, p.z}; }
 Vec3 toVec(const MFloatVector& p) { return {p.x, p.y, p.z}; }
+Vec3 toVecColor(const MColor& c) { return {c.r, c.g, c.b}; }
 
 double plugDouble(const MFnDependencyNode& node, const char* name, double fallback) {
     const MPlug plug = node.findPlug(name, true);
@@ -64,7 +65,7 @@ LightDesc extractLight(const MDagPath& path) {
 
     if (path.hasFn(MFn::kLight)) {
         MFnLight fnLight(path);
-        light.color = toVec(fnLight.color());
+        light.color = toVecColor(fnLight.color());
         light.intensity = fnLight.intensity();
     }
 
@@ -109,7 +110,7 @@ LightDesc extractLight(const MDagPath& path) {
     }
     if (path.hasFn(MFn::kLight)) {
         MFnLight fnLight(path);
-        if (!fnLight.illuminatesByDefault()) {
+        if (plugExists(dep, "illuminatesByDefault") && !dep.findPlug("illuminatesByDefault", true).asBool()) {
             light.includeObjects.push_back("__none__");
         }
     }
@@ -138,11 +139,12 @@ void applyLightLinking(std::vector<LightDesc>* lights) {
         MDagPath path;
         if (list.getDagPath(0, path) != MS::kSuccess) continue;
         if (path.hasFn(MFn::kTransform)) path.extendToShape();
-        MSelectionList linked;
-        if (linker.getLinkedObjects(path, false, linked) != MS::kSuccess) continue;
-        if (path.hasFn(MFn::kLight) && MFnLight(path).illuminatesByDefault()) {
+        MFnDependencyNode lightDep(path.node());
+        const bool byDefault = !plugExists(lightDep, "illuminatesByDefault") ||
+                               lightDep.findPlug("illuminatesByDefault", true).asBool();
+        if (byDefault) {
             MSelectionList ignored;
-            if (linker.getLinkedObjects(path, true, ignored) == MS::kSuccess) {
+            if (linker.getIgnoredObjects(path, ignored) == MS::kSuccess) {
                 light.excludeObjects.clear();
                 for (unsigned i = 0; i < ignored.length(); ++i) {
                     MDagPath obj;
@@ -153,6 +155,8 @@ void applyLightLinking(std::vector<LightDesc>* lights) {
             }
             light.includeObjects.clear();
         } else {
+            MSelectionList linked;
+            if (linker.getLinkedObjects(path, linked) != MS::kSuccess) continue;
             light.includeObjects.clear();
             for (unsigned i = 0; i < linked.length(); ++i) {
                 MDagPath obj;

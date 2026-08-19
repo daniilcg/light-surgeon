@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\Projects\Develop\Tools\Lighters\build-maya2022\CMakeFiles\043d444e2c4451a5b23516a0c6c8e3fa\RUN_TESTS_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{5F6B2A74-81DA-30F1-B5F9-4D849FE6A6B0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -64,7 +64,7 @@ void LightSurgeonHudOverride::addUIDrawables(const MDagPath&, MHWRender::MUIDraw
     drawManager.setFontSize(MHWRender::MUIDrawManager::kSmallFontSize);
     MPoint pos(40.0, 80.0, 0.0);
     MStringArray lines;
-    hud->text.split(MString("\n"), lines);
+    hud->text.split('\n', lines);
     for (unsigned i = 0; i < lines.length() && i < 40; ++i) {
         drawManager.text2d(pos, lines[i], MHWRender::MUIDrawManager::kLeft);
         pos.y += 16.0;

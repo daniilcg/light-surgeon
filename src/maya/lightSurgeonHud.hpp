@@ -19,7 +19,7 @@ public:
 
 class LightSurgeonHudData : public MUserData {
 public:
-    LightSurgeonHudData() : MUserData(false) {}
+    LightSurgeonHudData() : MUserData() {}
     MString text;
     bool show = true;
 };
