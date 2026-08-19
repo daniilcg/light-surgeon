@@ -253,7 +253,8 @@ std::vector<PortalCandidate> findPortals(const Bvh& bvh, const SceneDesc& scene,
                                                      ? meshNames[static_cast<std::size_t>(tri.meshIndex)]
                                                      : "";
                     if (meshName.find("ylinder") != std::string::npos || meshName.find("phere") != std::string::npos ||
-                        meshName.find("orus") != std::string::npos) {
+                        meshName.find("orus") != std::string::npos || meshName.find("pCube") != std::string::npos ||
+                        meshName.find("pPlane") != std::string::npos) {
                         continue;
                     }
                     PortalCandidate p;
@@ -385,16 +386,14 @@ AnalysisResult analyzeScene(const SceneDesc& scene, const AnalyzeSettings& setti
         LightStats& ls = result.lights[i];
         const LightDesc& light = scene.lights[i];
         ls.dead = light.enabled && ls.energy <= settings.deadEnergyEpsilon;
-        const double radius = light.type == LightType::Area ? 0.5 * std::min(light.areaWidth, light.areaHeight) : light.radius;
+        const double radius =
+            light.type == LightType::Area ? 0.5 * std::min(light.areaWidth, light.areaHeight) : light.radius;
+        const bool canBeNoisy = light.type != LightType::Directional && light.type != LightType::Dome && radius > 1e-4;
         const double area = std::max(1e-6, kPi * radius * radius);
-        const double density = effectiveIntensity(light) / area;
-        ls.noiseScore = density * (ls.pixelFraction > 0.0 ? (1.0 - std::min(1.0, ls.pixelFraction / 0.2)) : 1.0);
-        ls.noisy = light.enabled && !ls.dead && radius <= settings.noisyRadius && density >= settings.noisyEnergyDensity;
-        if (light.type == LightType::Dome) ls.noisy = false;
-        if (!ls.noisy && light.enabled && !ls.dead && ls.pixelFraction > 0.0 &&
-            ls.pixelFraction <= settings.noisyPixelFraction && density >= settings.noisyEnergyDensity * 0.5) {
-            ls.noisy = true;
-        }
+        const double density = canBeNoisy ? effectiveIntensity(light) / area : 0.0;
+        ls.noiseScore = canBeNoisy ? density * (1.0 - std::min(1.0, ls.pixelFraction)) : 0.0;
+        ls.noisy = light.enabled && !ls.dead && canBeNoisy && radius <= settings.noisyRadius &&
+                   density >= settings.noisyEnergyDensity;
         if (!light.includeObjects.empty()) {
             std::unordered_set<std::string> names(meshNames.begin(), meshNames.end());
             bool any = false;

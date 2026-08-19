@@ -106,6 +106,7 @@ MStatus LightSurgeonCmd::getLightIntensity(const MString& name, double* value) {
     MDagPath path;
     st = list.getDagPath(0, path);
     if (st != MS::kSuccess) return st;
+    if (path.node().hasFn(MFn::kTransform)) path.extendToShape();
     MFnDependencyNode node(path.node());
     MPlug plug = node.findPlug("intensity", true, &st);
     if (st != MS::kSuccess || plug.isNull()) {
@@ -123,6 +124,7 @@ MStatus LightSurgeonCmd::setLightIntensity(const MString& name, double value) {
     MDagPath path;
     st = list.getDagPath(0, path);
     if (st != MS::kSuccess) return st;
+    if (path.node().hasFn(MFn::kTransform)) path.extendToShape();
     MFnDependencyNode node(path.node());
     MPlug plug = node.findPlug("intensity", true, &st);
     if (st != MS::kSuccess || plug.isNull()) {
@@ -176,22 +178,22 @@ MStatus runAnalysis(lightsurgeon::AnalysisResult* result, MString* error, int fr
 }  // namespace
 
 MStatus LightSurgeonCmd::ensureHud(const MString& report) {
-    MGlobal::executeCommand(
-        "if (!`objExists lightSurgeonHud`) {"
-        "  $lsT = `createNode transform -n lightSurgeonHud`;"
-        "  createNode lightSurgeonHud -n lightSurgeonHudShape -p $lsT;"
-        "  setAttr -l false lightSurgeonHud.hiddenInOutliner;"
-        "  setAttr lightSurgeonHud.hiddenInOutliner true;"
-        "}"
-        "string $lsHud[] = `ls -type lightSurgeonHud`;"
-        "for ($n in $lsHud) {"
-        "  if ($n != \"lightSurgeonHudShape\" && $n != \"lightSurgeonHud\") {"
-        "    catchQuiet(`delete $n`);"
-        "  }"
-        "}");
     MSelectionList existing;
     if (existing.add("lightSurgeonHudShape") != MS::kSuccess) {
-        if (existing.add("lightSurgeonHud") != MS::kSuccess) return MS::kFailure;
+        MObject parent;
+        MSelectionList xformList;
+        if (xformList.add("lightSurgeonHud") == MS::kSuccess) {
+            xformList.getDependNode(0, parent);
+        } else {
+            MFnDagNode xformFn;
+            parent = xformFn.create("transform", "lightSurgeonHud");
+        }
+        MFnDagNode shapeFn;
+        MStatus created;
+        shapeFn.create("lightSurgeonHud", "lightSurgeonHudShape", parent, &created);
+        if (created != MS::kSuccess) return created;
+        existing.clear();
+        if (existing.add("lightSurgeonHudShape") != MS::kSuccess) return MS::kFailure;
     }
     MObject nodeObj;
     existing.getDependNode(0, nodeObj);
@@ -328,7 +330,16 @@ MStatus LightSurgeonCmd::applyMuting(bool dead, bool noisy) {
             newIntensity_.append(0.0);
         }
     }
-    return redoIt();
+    if (names_.length() == 0) {
+        action_ = Action::None;
+        MGlobal::displayWarning("Light Surgeon: nothing to mute (no DEAD/NOISY lights, or intensity plug missing).");
+        return MS::kSuccess;
+    }
+    const MStatus muteSt = redoIt();
+    if (muteSt == MS::kSuccess) {
+        MGlobal::displayInfo(MString("Light Surgeon: muted ") + static_cast<int>(names_.length()) + " light(s). Undo to restore.");
+    }
+    return muteSt;
 }
 
 MStatus LightSurgeonCmd::applySolo(const MString& name) {
