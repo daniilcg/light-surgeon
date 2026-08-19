@@ -17,8 +17,10 @@
 #include <maya/MTime.h>
 
 #include <algorithm>
+#include <exception>
 #include <fstream>
 #include <sstream>
+#include <string>
 #include <vector>
 
 static const char* kAnalyzeFlag = "-an";
@@ -55,6 +57,23 @@ static const char* kEndFlag = "-fe";
 static const char* kEndLong = "-frameEnd";
 static const char* kStepFlag = "-ft";
 static const char* kStepLong = "-frameStep";
+
+static MString resolveMayaPath(const MString& path) {
+    const std::string p = path.asChar();
+    if (p.empty()) return path;
+    const bool absWin = p.size() >= 2 && p[1] == ':';
+    const bool absUnix = p[0] == '/' || p[0] == '\\';
+    if (absWin || absUnix) return path;
+    MString ws;
+    MGlobal::executeCommand("workspace -q -rd", ws);
+    if (ws.length() == 0) {
+        MGlobal::executeCommand("internalVar -userWorkspaceDir", ws);
+    }
+    MString slash = "/";
+    const char last = ws.asChar()[ws.length() - 1];
+    if (last != '/' && last != '\\') ws += slash;
+    return ws + path;
+}
 
 void* LightSurgeonCmd::creator() { return new LightSurgeonCmd(); }
 
@@ -157,11 +176,22 @@ MStatus runAnalysis(lightsurgeon::AnalysisResult* result, MString* error, int fr
 }  // namespace
 
 MStatus LightSurgeonCmd::ensureHud(const MString& report) {
+    MGlobal::executeCommand(
+        "if (!`objExists lightSurgeonHud`) {"
+        "  $lsT = `createNode transform -n lightSurgeonHud`;"
+        "  createNode lightSurgeonHud -n lightSurgeonHudShape -p $lsT;"
+        "  setAttr -l false lightSurgeonHud.hiddenInOutliner;"
+        "  setAttr lightSurgeonHud.hiddenInOutliner true;"
+        "}"
+        "string $lsHud[] = `ls -type lightSurgeonHud`;"
+        "for ($n in $lsHud) {"
+        "  if ($n != \"lightSurgeonHudShape\" && $n != \"lightSurgeonHud\") {"
+        "    catchQuiet(`delete $n`);"
+        "  }"
+        "}");
     MSelectionList existing;
-    if (existing.add("lightSurgeonHud1") != MS::kSuccess) {
-        MGlobal::executeCommand("createNode -n lightSurgeonHud1 lightSurgeonHud");
-        existing.clear();
-        if (existing.add("lightSurgeonHud1") != MS::kSuccess) return MS::kFailure;
+    if (existing.add("lightSurgeonHudShape") != MS::kSuccess) {
+        if (existing.add("lightSurgeonHud") != MS::kSuccess) return MS::kFailure;
     }
     MObject nodeObj;
     existing.getDependNode(0, nodeObj);
@@ -181,7 +211,16 @@ MStatus LightSurgeonCmd::analyzeAndPrint(bool writeHud, bool asJson, int frameSt
     }
     resultText_ = asJson ? lightsurgeon::analysisToJson(result).dump(2).c_str()
                          : lightsurgeon::formatReport(result).c_str();
-    if (writeHud) ensureHud(lightsurgeon::formatReport(result).c_str());
+    if (writeHud) {
+        if (result.lights.empty() && result.hits == 0) {
+            ensureHud("LIGHT SURGEON\nempty shot — add mesh + lights\nclick persp, then Analyze");
+        } else {
+            ensureHud(lightsurgeon::formatHudReport(result).c_str());
+        }
+    }
+    if (result.lights.empty() && result.hits == 0) {
+        MGlobal::displayInfo("Light Surgeon: empty shot. Add mesh + lights, click persp, then Analyze.");
+    }
     setResult(resultText_);
     MGlobal::displayInfo(resultText_);
     return MS::kSuccess;
@@ -210,13 +249,15 @@ MStatus LightSurgeonCmd::writeReport(const MString& path) {
         if (err.length()) MGlobal::displayError(err);
         return st;
     }
-    std::ofstream out(path.asChar(), std::ios::binary);
+    const MString outPath = resolveMayaPath(path);
+    std::ofstream out(outPath.asChar(), std::ios::binary);
     if (!out) {
-        MGlobal::displayError("Cannot write report");
+        MGlobal::displayError(MString("Cannot write report: ") + outPath);
         return MS::kFailure;
     }
     out << lightsurgeon::analysisToJson(result).dump(2);
-    setResult(path);
+    setResult(outPath);
+    MGlobal::displayInfo(MString("Light Surgeon report: ") + outPath);
     return MS::kSuccess;
 }
 
@@ -225,8 +266,15 @@ MStatus LightSurgeonCmd::exportScene(const MString& path) {
     MString err;
     const MStatus st = lightsurgeon::extractMayaScene(&scene, &err);
     if (st != MS::kSuccess) return st;
-    lightsurgeon::saveSceneFile(path.asChar(), scene);
-    setResult(path);
+    const MString outPath = resolveMayaPath(path);
+    try {
+        lightsurgeon::saveSceneFile(outPath.asChar(), scene);
+    } catch (const std::exception& ex) {
+        MGlobal::displayError(ex.what());
+        return MS::kFailure;
+    }
+    setResult(outPath);
+    MGlobal::displayInfo(MString("Light Surgeon scene: ") + outPath);
     return MS::kSuccess;
 }
 

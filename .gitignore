@@ -27,3 +27,4 @@ __pycache__/
 .env.*
 *.log
 /install/
+plug-ins/

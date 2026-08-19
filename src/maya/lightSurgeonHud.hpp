@@ -1,5 +1,6 @@
 #pragma once
 
+#include <maya/MBoundingBox.h>
 #include <maya/MDrawRegistry.h>
 #include <maya/MPxDrawOverride.h>
 #include <maya/MPxLocatorNode.h>
@@ -22,6 +23,8 @@ public:
     LightSurgeonHudData() : MUserData() {}
     MString text;
     bool show = true;
+    bool perspOnly = false;
+    int viewHeight = 720;
 };
 
 class LightSurgeonHudOverride : public MHWRender::MPxDrawOverride {
@@ -30,6 +33,9 @@ public:
     explicit LightSurgeonHudOverride(const MObject& obj);
     MHWRender::DrawAPI supportedDrawAPIs() const override;
     bool hasUIDrawables() const override { return true; }
+    bool isBounded(const MDagPath& objPath, const MDagPath& cameraPath) const override;
+    MBoundingBox boundingBox(const MDagPath& objPath, const MDagPath& cameraPath) const override;
+    bool excludedFromPostEffects() const override;
     MUserData* prepareForDraw(const MDagPath& objPath, const MDagPath& cameraPath,
                               const MHWRender::MFrameContext& frameContext, MUserData* oldData) override;
     void addUIDrawables(const MDagPath& objPath, MHWRender::MUIDrawManager& drawManager,

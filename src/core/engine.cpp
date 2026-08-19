@@ -235,7 +235,7 @@ std::vector<PortalCandidate> findPortals(const Bvh& bvh, const SceneDesc& scene,
         const Vec3 n = tri.geometricNormal();
         const Vec3 c = tri.centroid();
         const double area = tri.area();
-        if (area < 0.05) continue;
+        if (area < 1.25) continue;
         for (const LightDesc& light : scene.lights) {
             if (!light.enabled) continue;
             if (light.type != LightType::Directional && light.type != LightType::Dome && light.type != LightType::Area) {
@@ -249,10 +249,15 @@ std::vector<PortalCandidate> findPortals(const Bvh& bvh, const SceneDesc& scene,
             if (dot(n, ldir) > 0.35) {
                 Vec3 toCam = scene.camera.position - c;
                 if (dot(n, toCam) > 0.0) {
+                    const std::string meshName = (tri.meshIndex >= 0 && tri.meshIndex < static_cast<int>(meshNames.size()))
+                                                     ? meshNames[static_cast<std::size_t>(tri.meshIndex)]
+                                                     : "";
+                    if (meshName.find("ylinder") != std::string::npos || meshName.find("phere") != std::string::npos ||
+                        meshName.find("orus") != std::string::npos) {
+                        continue;
+                    }
                     PortalCandidate p;
-                    p.meshName = (tri.meshIndex >= 0 && tri.meshIndex < static_cast<int>(meshNames.size()))
-                                     ? meshNames[static_cast<std::size_t>(tri.meshIndex)]
-                                     : "";
+                    p.meshName = meshName;
                     p.center = c;
                     p.normal = n;
                     p.area = area;
@@ -266,8 +271,19 @@ std::vector<PortalCandidate> findPortals(const Bvh& bvh, const SceneDesc& scene,
     std::sort(portals.begin(), portals.end(), [](const PortalCandidate& a, const PortalCandidate& b) {
         return a.score > b.score;
     });
-    if (portals.size() > 12) portals.resize(12);
-    return portals;
+    std::vector<PortalCandidate> unique;
+    for (const auto& p : portals) {
+        bool seen = false;
+        for (const auto& u : unique) {
+            if (u.meshName == p.meshName) {
+                seen = true;
+                break;
+            }
+        }
+        if (!seen) unique.push_back(p);
+        if (unique.size() >= 5) break;
+    }
+    return unique;
 }
 
 std::vector<LeakHit> findLeaks(const SceneDesc& scene, const Bvh& bvh, const Basis& basis,
@@ -374,6 +390,7 @@ AnalysisResult analyzeScene(const SceneDesc& scene, const AnalyzeSettings& setti
         const double density = effectiveIntensity(light) / area;
         ls.noiseScore = density * (ls.pixelFraction > 0.0 ? (1.0 - std::min(1.0, ls.pixelFraction / 0.2)) : 1.0);
         ls.noisy = light.enabled && !ls.dead && radius <= settings.noisyRadius && density >= settings.noisyEnergyDensity;
+        if (light.type == LightType::Dome) ls.noisy = false;
         if (!ls.noisy && light.enabled && !ls.dead && ls.pixelFraction > 0.0 &&
             ls.pixelFraction <= settings.noisyPixelFraction && density >= settings.noisyEnergyDensity * 0.5) {
             ls.noisy = true;
@@ -529,6 +546,24 @@ std::string formatReport(const AnalysisResult& result) {
     for (const auto& leak : result.leaks) {
         os << "  leak near " << leak.nearMesh << " gap " << leak.gap << " light " << leak.lightName << "\n";
     }
+    return os.str();
+}
+
+std::string formatHudReport(const AnalysisResult& result) {
+    std::ostringstream os;
+    os.precision(2);
+    os << std::fixed;
+    os << "LIGHT SURGEON  f" << result.frame << "  hits " << result.hits << "/" << result.samples << "\n";
+    std::size_t n = 0;
+    for (const auto& l : result.lights) {
+        if (n >= 8) break;
+        os << l.name << "  " << l.role << "  " << l.energy;
+        if (l.dead) os << "  DEAD";
+        if (l.noisy) os << "  NOISY";
+        os << "\n";
+        ++n;
+    }
+    os << "portals " << result.portals.size() << "   leaks " << result.leaks.size();
     return os.str();
 }
 

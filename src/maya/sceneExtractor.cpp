@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <unordered_set>
 
 #include <maya/M3dView.h>
 #include <maya/MAnimControl.h>
@@ -52,7 +53,11 @@ Vec3 plugColor(const MFnDependencyNode& node, const char* name, const Vec3& fall
 LightDesc extractLight(const MDagPath& path) {
     LightDesc light;
     MFnDagNode dag(path);
-    light.name = dag.partialPathName().asChar();
+    MDagPath namePath = path;
+    if (namePath.hasFn(MFn::kShape) && namePath.length() > 1) {
+        namePath.pop();
+    }
+    light.name = MFnDagNode(namePath).partialPathName().asChar();
     const MMatrix wm = path.inclusiveMatrix();
     const MPoint origin = MPoint(0, 0, 0) * wm;
     const MVector down = MVector(0, 0, -1) * wm - MVector(0, 0, 0) * wm;
@@ -87,6 +92,8 @@ LightDesc extractLight(const MDagPath& path) {
         const MVector sy = MVector(0, 1, 0) * wm - MVector(0, 0, 0) * wm;
         light.areaWidth = std::max(0.01, 2.0 * sx.length());
         light.areaHeight = std::max(0.01, 2.0 * sy.length());
+    } else if (path.hasFn(MFn::kAmbientLight)) {
+        light.type = LightType::Dome;
     } else {
         light.type = LightType::Point;
     }
@@ -170,22 +177,36 @@ void applyLightLinking(std::vector<LightDesc>* lights) {
 
 MStatus fillCamera(SceneDesc* scene, MString* error) {
     MDagPath camPath;
-    MString renderCam;
-    MGlobal::executeCommand("if (`objExists renderView`) renderWindowEditor -q -currentCamera renderView;", renderCam);
     bool got = false;
-    if (renderCam.length() > 0) {
-        MSelectionList sl;
-        if (sl.add(renderCam) == MS::kSuccess && sl.getDagPath(0, camPath) == MS::kSuccess) {
+    M3dView view = M3dView::active3dView();
+    if (view.getCamera(camPath) == MS::kSuccess) {
+        if (camPath.hasFn(MFn::kTransform)) camPath.extendToShape();
+        if (camPath.hasFn(MFn::kCamera) && !MFnCamera(camPath).isOrtho()) {
+            got = true;
+        }
+    }
+    if (!got) {
+        MSelectionList persp;
+        if (persp.add("persp") == MS::kSuccess && persp.getDagPath(0, camPath) == MS::kSuccess) {
             if (camPath.hasFn(MFn::kTransform)) camPath.extendToShape();
             got = camPath.hasFn(MFn::kCamera);
         }
     }
     if (!got) {
-        M3dView view = M3dView::active3dView();
-        if (view.getCamera(camPath) != MS::kSuccess) {
-            if (error) *error = "No render or viewport camera";
-            return MS::kFailure;
+        MString renderCam;
+        MGlobal::executeCommand("if (`objExists renderView`) renderWindowEditor -q -currentCamera renderView;",
+                                renderCam);
+        if (renderCam.length() > 0) {
+            MSelectionList sl;
+            if (sl.add(renderCam) == MS::kSuccess && sl.getDagPath(0, camPath) == MS::kSuccess) {
+                if (camPath.hasFn(MFn::kTransform)) camPath.extendToShape();
+                got = camPath.hasFn(MFn::kCamera);
+            }
         }
+    }
+    if (!got) {
+        if (error) *error = "No perspective camera";
+        return MS::kFailure;
     }
     MFnCamera cam(camPath);
     scene->camera.name = MFnDagNode(camPath).partialPathName().asChar();
@@ -214,7 +235,11 @@ MStatus fillCamera(SceneDesc* scene, MString* error) {
 MeshDesc extractMesh(const MDagPath& path, int* remainingTris) {
     MeshDesc mesh;
     MFnDagNode dag(path);
-    mesh.name = dag.partialPathName().asChar();
+    MDagPath namePath = path;
+    if (namePath.hasFn(MFn::kShape) && namePath.length() > 1) {
+        namePath.pop();
+    }
+    mesh.name = MFnDagNode(namePath).partialPathName().asChar();
     MFnMesh fn(path);
     MPointArray points;
     fn.getPoints(points, MSpace::kWorld);
@@ -250,6 +275,7 @@ MStatus extractMayaScene(SceneDesc* scene, MString* error) {
         MDagPath path;
         dagIt.getPath(path);
         if (!dagVisible(path)) continue;
+        if (path.node().hasFn(MFn::kTransform)) continue;
         if (path.hasFn(MFn::kLight)) {
             scene->lights.push_back(extractLight(path));
         } else if (path.hasFn(MFn::kMesh) && remaining > 0) {
@@ -263,6 +289,14 @@ MStatus extractMayaScene(SceneDesc* scene, MString* error) {
                 scene->lights.push_back(extractLight(path));
             }
         }
+    }
+    {
+        std::vector<LightDesc> unique;
+        std::unordered_set<std::string> seen;
+        for (const auto& light : scene->lights) {
+            if (seen.insert(light.name).second) unique.push_back(light);
+        }
+        scene->lights.swap(unique);
     }
     applyLightLinking(&scene->lights);
     return MS::kSuccess;
